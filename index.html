@@ -1,1 +1,758 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call the Muse</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Cinzel:wght@400;500&family=IM+Fell+English:ital@0;1&display=swap');
+
+  :root {
+    --ink: #1a1410;
+    --parchment: #f7f0e3;
+    --gold: #b8912a;
+    --gold-pale: #d4aa4a;
+    --ember: #8b3a1a;
+    --smoke: #6b6058;
+    --vellum: #ede4d0;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #0d0b08;
+    overflow: hidden;
+  }
+
+  /* ─── STARFIELD ─── */
+  canvas#stars {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  /* ─── FLAME ─── */
+  .flame-container {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 220px;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .flame {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 140px;
+    border-radius: 50% 50% 30% 30% / 60% 60% 40% 40%;
+    background: radial-gradient(ellipse at 50% 80%, #fff7e0 0%, #f5a623 30%, #e55a00 60%, transparent 100%);
+    filter: blur(2px);
+    animation: flicker 2.4s ease-in-out infinite alternate;
+    opacity: 0;
+    transition: opacity 2s ease;
+  }
+
+  .flame-inner {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 70px;
+    border-radius: 50% 50% 30% 30% / 60% 60% 40% 40%;
+    background: radial-gradient(ellipse at 50% 80%, #fff 0%, #ffe4a0 40%, transparent 100%);
+    filter: blur(1px);
+    animation: flicker 1.8s ease-in-out infinite alternate-reverse;
+  }
+
+  .candle-body {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 80px;
+    background: linear-gradient(to right, #d4c9b8 0%, #f0e8d8 40%, #c8bca8 100%);
+    border-radius: 2px 2px 0 0;
+  }
+
+  .candle-wax {
+    position: absolute;
+    bottom: 78px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 12px;
+    background: radial-gradient(ellipse, #e8dcc8 60%, #c8bca8 100%);
+    border-radius: 50%;
+  }
+
+  .candle-wick {
+    position: absolute;
+    bottom: 88px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 10px;
+    background: #3a2e1e;
+    border-radius: 1px;
+  }
+
+  @keyframes flicker {
+    0%   { transform: translateX(-50%) scaleX(1)   skewX(0deg);   opacity: 0.9; }
+    25%  { transform: translateX(-52%) scaleX(0.95) skewX(-3deg); opacity: 1;   }
+    50%  { transform: translateX(-48%) scaleX(1.05) skewX(2deg);  opacity: 0.85;}
+    75%  { transform: translateX(-51%) scaleX(0.98) skewX(-1deg); opacity: 0.95;}
+    100% { transform: translateX(-50%) scaleX(1)   skewX(1deg);   opacity: 0.88;}
+  }
+
+  /* ─── GLOW POOL ─── */
+  .glow-pool {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 300px;
+    background: radial-gradient(ellipse at 50% 100%, rgba(180,100,20,0.18) 0%, transparent 70%);
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 2s ease;
+  }
+
+  /* ─── SCROLL / MAIN ─── */
+  #app {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  /* ─── SCREENS ─── */
+  .screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 680px;
+    width: 100%;
+    animation: fadeIn 1.4s ease forwards;
+  }
+  .screen.active { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── TYPOGRAPHY ─── */
+  .eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.35em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 1.4rem;
+    opacity: 0.8;
+  }
+
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2.8rem, 7vw, 5rem);
+    color: var(--parchment);
+    line-height: 1.1;
+    letter-spacing: 0.03em;
+    margin-bottom: 1rem;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--gold-pale);
+  }
+
+  .subtitle {
+    font-family: 'IM Fell English', serif;
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--smoke);
+    margin-bottom: 2.5rem;
+    line-height: 1.7;
+    max-width: 420px;
+  }
+
+  /* ─── INVOCATION TEXT ─── */
+  .invocation {
+    font-family: 'IM Fell English', serif;
+    font-size: clamp(0.95rem, 2.2vw, 1.1rem);
+    color: var(--vellum);
+    line-height: 1.95;
+    text-align: center;
+    max-width: 560px;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
+  .invocation.visible { opacity: 1; }
+
+  .invocation em {
+    color: var(--gold-pale);
+    font-style: italic;
+  }
+
+  /* ─── WORD CURSOR ─── */
+  .word {
+    display: inline;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .word.shown { opacity: 1; }
+
+  /* ─── RESPONSE AREA ─── */
+  .response-scroll {
+    margin-top: 2rem;
+    padding: 1.8rem 2.2rem;
+    border: 1px solid rgba(184,145,42,0.25);
+    border-radius: 2px;
+    background: rgba(247,240,227,0.04);
+    max-width: 560px;
+    width: 100%;
+    min-height: 120px;
+    position: relative;
+    opacity: 0;
+    transition: opacity 1s ease 0.5s;
+  }
+
+  .response-scroll.visible { opacity: 1; }
+
+  .response-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(1rem, 2.4vw, 1.2rem);
+    color: var(--gold-pale);
+    line-height: 1.75;
+    text-align: center;
+  }
+
+  .response-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    opacity: 0.6;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 0.8rem;
+  }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: transparent;
+    border: 1px solid rgba(184,145,42,0.5);
+    padding: 0.85rem 2.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 2rem;
+  }
+
+  .btn:hover {
+    background: rgba(184,145,42,0.08);
+    border-color: var(--gold);
+    color: var(--gold-pale);
+  }
+
+  .btn:active { transform: scale(0.98); }
+
+  .btn-ghost {
+    border-color: transparent;
+    color: var(--smoke);
+    font-size: 0.62rem;
+    margin-top: 0.5rem;
+  }
+
+  .btn-ghost:hover {
+    background: transparent;
+    border-color: transparent;
+    color: var(--parchment);
+  }
+
+  /* ─── WORK DECLARATION ─── */
+  .work-input-container {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 1.8rem;
+    position: relative;
+  }
+
+  .work-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    opacity: 0.7;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.7rem;
+    text-align: left;
+  }
+
+  .work-input {
+    width: 100%;
+    background: rgba(247,240,227,0.04);
+    border: none;
+    border-bottom: 1px solid rgba(184,145,42,0.35);
+    color: var(--parchment);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem;
+    font-style: italic;
+    padding: 0.6rem 0;
+    outline: none;
+    transition: border-color 0.3s ease;
+  }
+
+  .work-input::placeholder {
+    color: rgba(247,240,227,0.2);
+    font-style: italic;
+  }
+
+  .work-input:focus {
+    border-bottom-color: var(--gold);
+  }
+
+  /* ─── LOADING ─── */
+  .muse-listening {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+    height: 24px;
+  }
+
+  .muse-listening span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--gold);
+    animation: pulse 1.4s ease-in-out infinite;
+    opacity: 0.4;
+  }
+
+  .muse-listening span:nth-child(2) { animation-delay: 0.2s; }
+  .muse-listening span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50%       { opacity: 1;   transform: scale(1.2); }
+  }
+
+  /* ─── DIVIDER ─── */
+  .ornament {
+    color: var(--gold);
+    opacity: 0.4;
+    font-size: 0.9rem;
+    letter-spacing: 0.5em;
+    margin: 1.2rem 0;
+  }
+
+  /* ─── FOOTER ACTIONS ─── */
+  .footer-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    margin-top: 0.5rem;
+  }
+
+  /* ─── PARTICLE OVERLAY ─── */
+  .particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: var(--gold);
+    opacity: 0;
+    animation: rise linear infinite;
+  }
+
+  @keyframes rise {
+    0%   { opacity: 0;   transform: translateY(0) scale(1); }
+    20%  { opacity: 0.6; }
+    80%  { opacity: 0.2; }
+    100% { opacity: 0;   transform: translateY(-60vh) scale(0.3); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div class="particles" id="particles"></div>
+
+<div class="flame-container" id="flameContainer">
+  <div class="flame" id="flame">
+    <div class="flame-inner"></div>
+  </div>
+  <div class="candle-body"></div>
+  <div class="candle-wax"></div>
+  <div class="candle-wick"></div>
+</div>
+<div class="glow-pool" id="glowPool"></div>
+
+<div id="app">
+
+  <!-- SCREEN 1: THRESHOLD -->
+  <div class="screen active" id="screen-threshold">
+    <div class="eyebrow">The War of Art</div>
+    <h1>Invoke the <em>Muse</em></h1>
+    <p class="subtitle">Before the work begins, the ancient ones called upon her.<br>As Pressfield does. As Homer did. As you will now.</p>
+    <button class="btn" onclick="goToWork()">I am ready to declare my work</button>
+  </div>
+
+  <!-- SCREEN 2: DECLARE YOUR WORK -->
+  <div class="screen" id="screen-declare">
+    <div class="eyebrow">Declare Your Work</div>
+    <h1>What do you<br><em>sit down</em> to do?</h1>
+    <p class="subtitle">Name the thing. The Muse hears only the truth.</p>
+    <div class="work-input-container">
+      <label class="work-label" for="workInput">Today I sit down to</label>
+      <input
+        class="work-input"
+        id="workInput"
+        type="text"
+        placeholder="write the first chapter, design the landing page…"
+        maxlength="120"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+    <button class="btn" onclick="beginInvocation()">Light the candle</button>
+    <div class="footer-actions">
+      <button class="btn btn-ghost" onclick="goToScreen('screen-threshold')">← Back</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: INVOCATION -->
+  <div class="screen" id="screen-invocation">
+    <div class="eyebrow">The Invocation</div>
+    <div class="invocation" id="invocationText"></div>
+    <div class="ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
+    <div class="response-scroll" id="responseScroll">
+      <div class="response-label">The Muse speaks</div>
+      <div class="response-text" id="museResponse">
+        <div class="muse-listening" id="museListening">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+    <div class="footer-actions">
+      <button class="btn" id="beginBtn" style="display:none" onclick="goToScreen('screen-begin')">I am ready. Begin.</button>
+      <button class="btn btn-ghost" onclick="resetAll()">Call again</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: BEGIN -->
+  <div class="screen" id="screen-begin">
+    <div class="eyebrow">The Work Begins</div>
+    <h1>Now<br><em>sit down</em>.</h1>
+    <p class="subtitle" id="beginSubtitle"></p>
+    <div class="ornament">✦</div>
+    <p class="subtitle" style="margin-top:0.5rem; font-size:0.88rem; opacity:0.7;">
+      Close this. Open the page. The Muse is already there.
+    </p>
+    <button class="btn btn-ghost" style="margin-top:1.5rem" onclick="resetAll()">Invoke again tomorrow</button>
+  </div>
+
+</div>
+
+<script>
+// ─── STARS ───────────────────────────────────────────────────────
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d');
+let stars = [];
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function initStars() {
+  resizeCanvas();
+  stars = Array.from({ length: 180 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: Math.random() * 1.2 + 0.2,
+    a: Math.random(),
+    speed: Math.random() * 0.003 + 0.001,
+    phase: Math.random() * Math.PI * 2,
+  }));
+}
+
+function drawStars(t) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  stars.forEach(s => {
+    const alpha = 0.3 + 0.5 * Math.sin(t * s.speed + s.phase);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,245,220,${alpha})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+
+window.addEventListener('resize', () => { resizeCanvas(); });
+initStars();
+requestAnimationFrame(drawStars);
+
+// ─── PARTICLES ───────────────────────────────────────────────────
+function spawnParticle() {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const x = window.innerWidth / 2 + (Math.random() - 0.5) * 80;
+  const dur = 4 + Math.random() * 4;
+  const delay = Math.random() * 3;
+  p.style.cssText = `left:${x}px; bottom:${60 + Math.random()*40}px; animation-duration:${dur}s; animation-delay:${delay}s; opacity:0;`;
+  document.getElementById('particles').appendChild(p);
+  setTimeout(() => p.remove(), (dur + delay) * 1000 + 200);
+}
+
+// ─── SCREENS ─────────────────────────────────────────────────────
+function goToScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const screen = document.getElementById(id);
+  screen.style.display = 'flex';
+  // Trigger animation restart
+  void screen.offsetWidth;
+  screen.classList.add('active');
+}
+
+function goToWork() {
+  goToScreen('screen-declare');
+  setTimeout(() => document.getElementById('workInput').focus(), 600);
+}
+
+// ─── CANDLE ──────────────────────────────────────────────────────
+let candleLit = false;
+
+function lightCandle() {
+  if (candleLit) return;
+  candleLit = true;
+  document.getElementById('flame').style.opacity = '1';
+  document.getElementById('glowPool').style.opacity = '1';
+  // Start particle interval
+  const interval = setInterval(() => {
+    if (!candleLit) { clearInterval(interval); return; }
+    spawnParticle();
+  }, 400);
+}
+
+// ─── THE INVOCATION TEXT ─────────────────────────────────────────
+const invocationLines = [
+  "O Divine Muse,",
+  "Descend from your untroubled realm",
+  "and enter, I pray you, my being,",
+  "my heart and my hands.",
+  "",
+  "Inspire me in this work.",
+  "Help me to see clearly,",
+  "to work truly,",
+  "to love what I do,",
+  "and to do it well.",
+  "",
+  "Resistance is real.",
+  "But you are older.",
+];
+
+function buildInvocationHTML(workText) {
+  const lines = [...invocationLines];
+  // Insert the work
+  lines.splice(6, 0, `<em>— to ${workText || "the work before me"} —</em>`);
+  return lines;
+}
+
+async function beginInvocation() {
+  const work = document.getElementById('workInput').value.trim();
+  goToScreen('screen-invocation');
+  lightCandle();
+
+  // Build and show invocation word by word
+  const lines = buildInvocationHTML(work);
+  const container = document.getElementById('invocationText');
+  container.innerHTML = '';
+  container.classList.add('visible');
+
+  let delay = 300;
+  for (const line of lines) {
+    if (line === '') {
+      const br = document.createElement('br');
+      container.appendChild(br);
+      delay += 200;
+      continue;
+    }
+
+    // Check if italic
+    const isItalic = line.startsWith('<em>');
+    const text = isItalic ? line.replace(/<\/?em>/g, '') : line;
+    const words = text.split(' ');
+
+    if (isItalic) container.appendChild(document.createTextNode(' '));
+
+    for (let i = 0; i < words.length; i++) {
+      const span = document.createElement('span');
+      span.className = 'word' + (isItalic ? '' : '');
+      if (isItalic) {
+        const em = document.createElement('em');
+        em.textContent = words[i] + (i < words.length - 1 ? ' ' : '');
+        span.appendChild(em);
+      } else {
+        span.textContent = words[i] + (i < words.length - 1 ? ' ' : '');
+      }
+      span.style.opacity = '0';
+      span.style.transition = `opacity 0.5s ease ${delay}ms`;
+      container.appendChild(span);
+      delay += 90 + Math.random() * 60;
+    }
+
+    const lineBreak = document.createElement('br');
+    container.appendChild(lineBreak);
+    delay += 180;
+  }
+
+  // Trigger all words
+  requestAnimationFrame(() => {
+    container.querySelectorAll('span').forEach(s => { s.style.opacity = '1'; });
+  });
+
+  // After invocation, show the response scroll and call Claude
+  const totalDelay = delay + 400;
+  setTimeout(() => {
+    document.getElementById('responseScroll').classList.add('visible');
+    callTheMuse(work);
+  }, totalDelay);
+}
+
+// ─── CALL CLAUDE (THE MUSE) ───────────────────────────────────────
+async function callTheMuse(work) {
+  const workDescription = work || "the creative work before me";
+
+  try {
+    const response = await fetch("/api/muse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: `You are the Muse — ancient, vast, impersonal and generous. You speak in the tradition of Homer's invocations, Hesiod's Theogony, and Steven Pressfield's War of Art. You do not flatter. You do not comfort with lies. You speak in poetic, measured prose — timeless, not modern. You give the creative soul what they need to sit down and do the work.
+
+Return ONLY a single, short oracular response: 3–5 sentences maximum. No preamble. No explanation. Speak directly to the person about their specific work. Make it feel genuinely ancient and alive. Do not mention resistance by name — embody the opposite of it. Do not use exclamation marks. Write in third person about the work, or address the creator as "you." Channel Rainer Maria Rilke's Letters to a Young Poet energy but compressed into 3-5 sentences.`,
+        messages: [
+          {
+            role: "user",
+            content: `The creative soul has declared their work: "${workDescription}". Speak to them now, O Muse.`
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || "Go. The work has already begun inside you.";
+
+    showMuseResponse(text);
+  } catch (err) {
+    // Fallback if API fails
+    const fallbacks = [
+      "You were made for this. Not the version of you that hesitates — the one beneath that. Begin there.",
+      "The work does not need your certainty. It needs your presence. Show up, and it will meet you.",
+      "What you are about to make has been waiting inside you longer than you know. It is not new. It is finally on its way out.",
+      "Every great thing was once only a person sitting down. You are already doing the hardest part.",
+    ];
+    const chosen = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    showMuseResponse(chosen);
+  }
+}
+
+function showMuseResponse(text) {
+  const el = document.getElementById('museResponse');
+  // Fade out the loading dots
+  const listening = document.getElementById('museListening');
+  if (listening) listening.style.opacity = '0';
+
+  setTimeout(() => {
+    el.innerHTML = `<span style="opacity:0;transition:opacity 1.2s ease">${text}</span>`;
+    requestAnimationFrame(() => {
+      el.querySelector('span').style.opacity = '1';
+    });
+    // Show the begin button
+    setTimeout(() => {
+      document.getElementById('beginBtn').style.display = 'inline-block';
+    }, 1800);
+  }, 500);
+}
+
+// ─── FINAL SCREEN ────────────────────────────────────────────────
+function goToScreen_begin() {
+  const work = document.getElementById('workInput').value.trim();
+  document.getElementById('beginSubtitle').textContent =
+    work
+      ? `The Muse has heard you. "${work}" is your task. Do not negotiate with the blank page. Just begin.`
+      : `The Muse has heard you. Do not negotiate with the blank page. Just begin.`;
+  goToScreen('screen-begin');
+}
+
+// Override begin button
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('beginBtn').onclick = goToScreen_begin;
+});
+
+function resetAll() {
+  candleLit = false;
+  document.getElementById('flame').style.opacity = '0';
+  document.getElementById('glowPool').style.opacity = '0';
+  document.getElementById('workInput').value = '';
+  document.getElementById('invocationText').innerHTML = '';
+  document.getElementById('invocationText').classList.remove('visible');
+  document.getElementById('responseScroll').classList.remove('visible');
+  document.getElementById('museResponse').innerHTML = `<div class="muse-listening" id="museListening"><span></span><span></span><span></span></div>`;
+  document.getElementById('beginBtn').style.display = 'none';
+  goToScreen('screen-threshold');
+}
+
+// Enter key on work input
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('workInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') beginInvocation();
+  });
+  document.getElementById('beginBtn').onclick = goToScreen_begin;
+});
+</script>
+</body>
+</html>
